@@ -9,13 +9,13 @@ PORT_CLIENT_SECRET = os.getenv("PORT_CLIENT_SECRET")
 GH_TOKEN = os.getenv("GH_PAT")
 
 # The public repository we want to ingest data from
-TARGET_REPO = "vercel/vercel"
-REPO_ENTITY_IDENTIFIER = "vercel" # Matches your existing entity
+TARGET_REPO = "microsoft/PowerToys"
+REPO_ENTITY_IDENTIFIER = "PowerToys"
 
 # Port API and Blueprint configuration
 PORT_API_URL = "https://api.getport.io/v1"
-PR_BLUEPRINT = "pullRequest" # The identifier of your PR blueprint
-ISSUE_BLUEPRINT = "issue"   # The identifier of your Issue blueprint
+PR_BLUEPRINT = "githubPullRequest"  # The identifier of your PR blueprint
+ISSUE_BLUEPRINT = "githubIssue"   # The identifier of your Issue blueprint
 
 # --- Helper Functions ---
 

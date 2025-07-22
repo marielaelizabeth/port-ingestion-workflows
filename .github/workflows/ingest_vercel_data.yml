@@ -1,4 +1,4 @@
-name: Ingest Vercel Public Repo Data into Port
+name: Ingest Microsoft PowerToys Public Repo Data into Port
 
 on:
   # Allows you to run this workflow manually from the Actions tab

@@ -12,7 +12,8 @@ REPO_ENTITY_IDENTIFIER = "PowerToys"
 
 PORT_API_URL = "https://api.getport.io/v1"
 PR_BLUEPRINT = "githubPullRequest" 
-ISSUE_BLUEPRINT = "githubIssue"   # Please double-check this identifier in your Port UI
+ISSUE_BLUEPRINT = "githubIssue"   
+VULNERABILITY_BLUEPRINT = "githubDependabotAlert" 
 
 # --- Helper Functions ---
 
@@ -59,6 +60,24 @@ def upsert_entities_in_bulk(access_token, blueprint_id, entities):
     else:
         print(f"Successfully upserted batch for {blueprint_id}.")
     return response
+
+
+def fetch_dependabot_alerts(repo_slug):
+    """Fetches Dependabot alerts from a repository."""
+    print(f"\n--- Fetching Dependabot Alerts for {repo_slug} ---")
+    all_alerts = []
+    # Note: Requires repo-level admin permissions or security_events scope for the PAT
+    url = f"https://api.github.com/repos/{repo_slug}/dependabot/alerts"
+    headers = {'Authorization': f'token {GH_TOKEN}', 'Accept': 'application/vnd.github.v3+json'}
+    # ... (Add pagination logic similar to fetch_github_data) ...
+    # This is a bit more complex, for the demo you can create dummy data
+    print("For demo purposes, we will create dummy vulnerability data.")
+    dummy_alerts = [
+        {"number": 1, "security_vulnerability": {"package": {"name": "log4j-core"}, "severity": "critical"}, "html_url": "https://github.com/microsoft/PowerToys/security/dependabot/1"},
+        {"number": 2, "security_vulnerability": {"package": {"name": "jackson-databind"}, "severity": "high"}, "html_url": "https://github.com/microsoft/PowerToys/security/dependabot/2"},
+        {"number": 3, "security_vulnerability": {"package": {"name": "moment"}, "severity": "medium"}, "html_url": "https://github.com/microsoft/PowerToys/security/dependabot/3"}
+    ]
+    return dummy_alerts
 
 # --- Main Logic ---
 

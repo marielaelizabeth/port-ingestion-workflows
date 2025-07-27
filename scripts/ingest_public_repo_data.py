@@ -1,8 +1,7 @@
 import os
 import sys
 import requests
-import random
-import uuid 
+import uuid
 from datetime import datetime
 
 # --- Configuration ---
@@ -16,13 +15,8 @@ REPO_ENTITY_IDENTIFIER = "PowerToys"
 PORT_API_URL = "https://api.getport.io/v1"
 PR_BLUEPRINT = "githubPullRequest"
 ISSUE_BLUEPRINT = "githubIssue"
-# VULNERABILITY_BLUEPRINT = "githubDependabotAlert" # We are not using this in this script yet
 
 # --- WALMART DUMMY DATA POOLS (DETERMINISTIC) ---
-# Active teams are smaller, more focused
-ACTIVE_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin"]
-ALL_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin", "SupplyChain-Dallas", "Ecomm-Reston", "Data-Science-Hub", "Internal-Tools"]
-
 # Active projects are high priority
 ACTIVE_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "Mobile_App_Refresh"]
 ALL_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "SupplyChain_API_V2", "Mobile_App_Refresh", "Legacy_System_Deprecation", "Data_Warehouse_Migration"]
@@ -31,16 +25,11 @@ ALL_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "SupplyChain_API_V
 BUG_LABELS = ["bug, sev-2", "bug, performance", "bug, UI"]
 FEATURE_LABELS = ["feature-request, Q3", "feature-request, mobile", "tech-debt"]
 
-
-# --- WALMART DUMMY DATA POOLS ---
-WALMART_LABELS = ["bug", "feature-request", "tech-debt", "security", "hotfix", "documentation"]
-WALMART_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin", "SupplyChain-Dallas", "Ecomm-Reston"]
+# Developers for assignment
 WALMART_DEVELOPERS = [
     "alex.chen", "brenda.smith", "carlos.garcia", "diana.jones", "ethan.williams",
     "fiona.davis", "greg.miller", "hannah.wilson", "ian.moore", "jenna.taylor"
 ]
-WALMART_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "SupplyChain_API_V2", "Mobile_App_Refresh"]
-
 
 # --- Helper Functions ---
 
@@ -68,30 +57,15 @@ def fetch_github_data(endpoint):
     return all_data
 
 def upsert_entities_in_bulk(access_token, blueprint_id, entities):
-    """
-    Creates or updates entities in Port using the Bulk API with a unique runId.
-    """
     if not entities:
         print(f"No entities to upsert for blueprint {blueprint_id}.")
         return
-
     headers = {'Authorization': f'Bearer {access_token}'}
     payload = {"entities": entities}
-    
-    # Generate a new, unique runId for every single API call
     run_id = str(uuid.uuid4())
-    
     print(f"Upserting {len(entities)} entities to blueprint {blueprint_id} with runId: {run_id}...")
-    
-    # Add the runId as a query parameter to the URL
     api_url = f"{PORT_API_URL}/blueprints/{blueprint_id}/entities/bulk?runId={run_id}"
-    
-    response = requests.post(
-        api_url, # Use the new URL with the runId
-        json=payload,
-        headers=headers
-    )
-    
+    response = requests.post(api_url, json=payload, headers=headers)
     if not response.ok:
         print(f"Error during bulk upsert for {blueprint_id}: {response.status_code} {response.text}", file=sys.stderr)
     else:
@@ -99,25 +73,10 @@ def upsert_entities_in_bulk(access_token, blueprint_id, entities):
     return response
 
 def delete_all_entities_of_blueprint(access_token, blueprint_id):
-    """
-    Deletes all entities associated with a specific blueprint.
-    This is a destructive operation used to ensure a clean slate.
-    """
     print(f"--- DELETING ALL ENTITIES for blueprint: {blueprint_id} ---")
     headers = {'Authorization': f'Bearer {access_token}'}
-    
-    # We construct a query to delete all entities of the blueprint
-    # The jq query 'true' selects every entity.
-    delete_payload = {
-        "query": "true"
-    }
-    
-    response = requests.delete(
-        f"{PORT_API_URL}/blueprints/{blueprint_id}/entities",
-        json=delete_payload,
-        headers=headers
-    )
-    
+    delete_payload = {"query": "true"}
+    response = requests.delete(f"{PORT_API_URL}/blueprints/{blueprint_id}/entities", json=delete_payload, headers=headers)
     if not response.ok:
         print(f"Error during entity deletion for {blueprint_id}: {response.status_code} {response.text}", file=sys.stderr)
     else:
@@ -131,62 +90,40 @@ def main():
         print("Error: Missing required secrets. Please check repository configuration.", file=sys.stderr)
         sys.exit(1)
 
-    # =========================================================================
-    # 👇 START OF NEW "INITIAL CLEANUP" SECTION
-    # =========================================================================
     print("Authenticating with Port for initial cleanup...")
-    # --- We get a token once here just for the delete operations
-    cleanup_token = get_port_api_token() 
-
-    # --- Call the delete function for both blueprints before doing anything else
+    cleanup_token = get_port_api_token()
     delete_all_entities_of_blueprint(cleanup_token, PR_BLUEPRINT)
     delete_all_entities_of_blueprint(cleanup_token, ISSUE_BLUEPRINT)
-    # =========================================================================
-    # 👆 END OF NEW "INITIAL CLEANUP" SECTION
-    # =========================================================================    
 
-    # --- Capture a unique timestamp for this specific workflow run
-    ingestion_timestamp = datetime.utcnow().isoformat() + "Z"
-    print(f"Starting ingestion with unique timestamp: {ingestion_timestamp}")
-    
     # --- Process Pull Requests ---
     print("\n--- Processing Pull Requests ---")
     github_prs = fetch_github_data("pulls")
     port_pr_entities = []
-    print(f"Found {len(github_prs)} PRs. Now enriching with dummy data...")
+    print(f"Found {len(github_prs)} PRs. Now enriching with deterministic data...")
 
     for i, pr in enumerate(github_prs):
         try:
-            # Randomly assign reviewers and an assignee INSIDE the loop
-            # pr_assignees = [random.choice(WALMART_DEVELOPERS)]
-            # pr_reviewers = random.choices(WALMART_DEVELOPERS, k=random.randint(1, 2)) # Use safer 'choices'
-            
-            # Deterministic assignment using modulo arithmetic
             assignee_index = i % len(WALMART_DEVELOPERS)
-            reviewer1_index = (i + 1) % len(WALMART_DEVELOPERS)
-            reviewer2_index = (i + 2) % len(WALMART_DEVELOPERS)
+            reviewer_index = (i + 1) % len(WALMART_DEVELOPERS)
             
             pr_assignees = WALMART_DEVELOPERS[assignee_index]
-            # Ensure reviewers are different from the assignee for this item
-            # pr_reviewers = f"{WALMART_DEVELOPERS[reviewer1_index]}, {WALMART_DEVELOPERS[reviewer2_index]}"
-            pr_reviewers = WALMART_DEVELOPERS[reviewer1_index]
-                  
+            pr_reviewers = WALMART_DEVELOPERS[reviewer_index]
 
             port_pr_entities.append({
                 "identifier": str(pr["number"]),
                 "title": pr["title"],
                 "properties": {
-                    "url": pr["html_url"], "status": pr["state"], "creator": pr.get("user", {}).get("login"),
-                    "createdAt": pr["created_at"], "updatedAt": pr["updated_at"],
-                    "assignTo": pr_assignees, "reviewBy": pr_reviewers
+                    "url": pr.get("html_url"), "status": pr.get("state"), "creator": pr.get("user", {}).get("login"),
+                    "createdAt": pr.get("created_at"), "updatedAt": pr.get("updated_at"),
+                    # 👇 CRITICAL FIX: The keys here MUST match the blueprint identifiers
+                    "assignTo": pr_assignees,
+                    "reviewBy": pr_reviewers
                 },
                 "relations": { "repository": REPO_ENTITY_IDENTIFIER }
             })
-            if (i + 1) % 500 == 0:
-                print(f"Processed {i + 1}/{len(github_prs)} PRs...")
         except Exception as e:
             print(f"Error processing PR #{pr.get('number', 'N/A')}: {e}", file=sys.stderr)
-            continue # Skip this PR and continue
+            continue
 
     print("Finished enriching PRs. Now sending to Port...")
     port_token_for_prs = get_port_api_token()
@@ -196,48 +133,35 @@ def main():
     print("\n--- Processing Issues ---")
     github_issues = fetch_github_data("issues")
     port_issue_entities = []
-    print(f"Found {len(github_issues)} issues. Now enriching with dummy data...")
+    print(f"Found {len(github_issues)} issues. Now enriching with deterministic data...")
 
     for i, issue in enumerate(github_issues):
-        if 'pull_request' in issue:
-            continue
+        if 'pull_request' in issue: continue
         try:
-            # Randomly assign labels, a primary label, assignee, and project INSIDE the loop
-            # num_labels = random.randint(1, 2)
-            # issue_labels = random.choices(WALMART_LABELS, k=num_labels) # Use safer 'choices'
-            # primary_label_value = issue_labels[0]
-            
-            # issue_assignee = random.choice(WALMART_DEVELOPERS)
-            # issue_project = random.choice(WALMART_PROJECTS)
-
-            # Differentiate data for open vs. closed issues to tell a better story
             if issue['state'] == 'open':
                 issue_project = ACTIVE_PROJECTS[i % len(ACTIVE_PROJECTS)]
-                # Alternate between bug and feature labels for open issues
                 issue_labels = BUG_LABELS[i % len(BUG_LABELS)] if i % 2 == 0 else FEATURE_LABELS[i % len(FEATURE_LABELS)]
-            else: # Closed issues
+            else:
                 issue_project = ALL_PROJECTS[i % len(ALL_PROJECTS)]
                 issue_labels = "documentation, done"
 
             primary_label_value = issue_labels.split(',')[0]
             issue_assignee = WALMART_DEVELOPERS[i % len(WALMART_DEVELOPERS)]
 
-
             port_issue_entities.append({
                 "identifier": str(issue["number"]),
                 "title": issue["title"],
                 "properties": {
-                    "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"),
+                    "url": issue.get("html_url"), "status": issue.get("state"), "creator": issue.get("user", {}).get("login"),
+                    # 👇 CRITICAL FIX: The keys here MUST match the blueprint identifiers
                     "labels": issue_labels, "primaryLabel": primary_label_value,
                     "assignee": issue_assignee, "project": issue_project
                 },
                 "relations": { "repository": REPO_ENTITY_IDENTIFIER }
             })
-            if (i + 1) % 500 == 0:
-                print(f"Processed {i + 1}/{len(github_issues)} issues...")
         except Exception as e:
             print(f"Error processing Issue #{issue.get('number', 'N/A')}: {e}", file=sys.stderr)
-            continue # Skip this issue and continue
+            continue
 
     print("Finished enriching issues. Now sending to Port...")
     port_token_for_issues = get_port_api_token()

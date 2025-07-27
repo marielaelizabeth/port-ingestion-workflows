@@ -18,6 +18,20 @@ PR_BLUEPRINT = "githubPullRequest"
 ISSUE_BLUEPRINT = "githubIssue"
 # VULNERABILITY_BLUEPRINT = "githubDependabotAlert" # We are not using this in this script yet
 
+# --- WALMART DUMMY DATA POOLS (DETERMINISTIC) ---
+# Active teams are smaller, more focused
+ACTIVE_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin"]
+ALL_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin", "SupplyChain-Dallas", "Ecomm-Reston", "Data-Science-Hub", "Internal-Tools"]
+
+# Active projects are high priority
+ACTIVE_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "Mobile_App_Refresh"]
+ALL_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "SupplyChain_API_V2", "Mobile_App_Refresh", "Legacy_System_Deprecation", "Data_Warehouse_Migration"]
+
+# Labels for open vs. closed issues
+BUG_LABELS = ["bug, sev-2", "bug, performance", "bug, UI"]
+FEATURE_LABELS = ["feature-request, Q3", "feature-request, mobile", "tech-debt"]
+
+
 # --- WALMART DUMMY DATA POOLS ---
 WALMART_LABELS = ["bug", "feature-request", "tech-debt", "security", "hotfix", "documentation"]
 WALMART_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin", "SupplyChain-Dallas", "Ecomm-Reston"]
@@ -144,11 +158,19 @@ def main():
     for i, pr in enumerate(github_prs):
         try:
             # Randomly assign reviewers and an assignee INSIDE the loop
-            
             # pr_assignees = [random.choice(WALMART_DEVELOPERS)]
             # pr_reviewers = random.choices(WALMART_DEVELOPERS, k=random.randint(1, 2)) # Use safer 'choices'
-            pr_assignees = "alex.chen"
-            pr_reviewers = "carlos.garcia"            
+            
+            # Deterministic assignment using modulo arithmetic
+            assignee_index = i % len(WALMART_DEVELOPERS)
+            reviewer1_index = (i + 1) % len(WALMART_DEVELOPERS)
+            reviewer2_index = (i + 2) % len(WALMART_DEVELOPERS)
+            
+            pr_assignees = WALMART_DEVELOPERS[assignee_index]
+            # Ensure reviewers are different from the assignee for this item
+            # pr_reviewers = f"{WALMART_DEVELOPERS[reviewer1_index]}, {WALMART_DEVELOPERS[reviewer2_index]}"
+            pr_reviewers = WALMART_DEVELOPERS[reviewer1_index]
+                  
 
             port_pr_entities.append({
                 "identifier": str(pr["number"]),
@@ -156,7 +178,7 @@ def main():
                 "properties": {
                     "url": pr["html_url"], "status": pr["state"], "creator": pr.get("user", {}).get("login"),
                     "createdAt": pr["created_at"], "updatedAt": pr["updated_at"],
-                    "assignees": pr_assignees, "reviewers": pr_reviewers
+                    "assignTo": pr_assignees, "reviewBy": pr_reviewers
                 },
                 "relations": { "repository": REPO_ENTITY_IDENTIFIER }
             })
@@ -181,14 +203,25 @@ def main():
             continue
         try:
             # Randomly assign labels, a primary label, assignee, and project INSIDE the loop
-            num_labels = random.randint(1, 2)
-            issue_labels = random.choices(WALMART_LABELS, k=num_labels) # Use safer 'choices'
-            primary_label_value = issue_labels[0]
+            # num_labels = random.randint(1, 2)
+            # issue_labels = random.choices(WALMART_LABELS, k=num_labels) # Use safer 'choices'
+            # primary_label_value = issue_labels[0]
             
             # issue_assignee = random.choice(WALMART_DEVELOPERS)
             # issue_project = random.choice(WALMART_PROJECTS)
-            issue_assignee = "diana.jones"
-            issue_project = "Q3_Checkout_Redesign"
+
+            # Differentiate data for open vs. closed issues to tell a better story
+            if issue['state'] == 'open':
+                issue_project = ACTIVE_PROJECTS[i % len(ACTIVE_PROJECTS)]
+                # Alternate between bug and feature labels for open issues
+                issue_labels = BUG_LABELS[i % len(BUG_LABELS)] if i % 2 == 0 else FEATURE_LABELS[i % len(FEATURE_LABELS)]
+            else: # Closed issues
+                issue_project = ALL_PROJECTS[i % len(ALL_PROJECTS)]
+                issue_labels = "documentation, done"
+
+            primary_label_value = issue_labels.split(',')[0]
+            issue_assignee = WALMART_DEVELOPERS[i % len(WALMART_DEVELOPERS)]
+
 
             port_issue_entities.append({
                 "identifier": str(issue["number"]),

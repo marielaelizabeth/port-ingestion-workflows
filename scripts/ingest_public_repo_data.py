@@ -108,7 +108,7 @@ def main():
         if 'pull_request' in issue: continue
         port_issue_entities.append({
             "identifier": str(issue["number"]), "title": issue["title"],
-            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login") },
+            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels  },
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
     # Get another fresh token right before we use it

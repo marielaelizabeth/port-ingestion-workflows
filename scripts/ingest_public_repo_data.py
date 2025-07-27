@@ -84,12 +84,52 @@ def upsert_entities_in_bulk(access_token, blueprint_id, entities):
         print(f"Successfully started bulk upsert job for {blueprint_id}.")
     return response
 
+def delete_all_entities_of_blueprint(access_token, blueprint_id):
+    """
+    Deletes all entities associated with a specific blueprint.
+    This is a destructive operation used to ensure a clean slate.
+    """
+    print(f"--- DELETING ALL ENTITIES for blueprint: {blueprint_id} ---")
+    headers = {'Authorization': f'Bearer {access_token}'}
+    
+    # We construct a query to delete all entities of the blueprint
+    # The jq query 'true' selects every entity.
+    delete_payload = {
+        "query": "true"
+    }
+    
+    response = requests.delete(
+        f"{PORT_API_URL}/blueprints/{blueprint_id}/entities",
+        json=delete_payload,
+        headers=headers
+    )
+    
+    if not response.ok:
+        print(f"Error during entity deletion for {blueprint_id}: {response.status_code} {response.text}", file=sys.stderr)
+    else:
+        print(f"✅ Successfully deleted all existing entities for {blueprint_id}.")
+    return response
+
 # --- Main Logic ---
 
 def main():
     if not all([PORT_CLIENT_ID, PORT_CLIENT_SECRET, GH_TOKEN]):
         print("Error: Missing required secrets. Please check repository configuration.", file=sys.stderr)
         sys.exit(1)
+
+    # =========================================================================
+    # 👇 START OF NEW "INITIAL CLEANUP" SECTION
+    # =========================================================================
+    print("Authenticating with Port for initial cleanup...")
+    # --- We get a token once here just for the delete operations
+    cleanup_token = get_port_api_token() 
+
+    # --- Call the delete function for both blueprints before doing anything else
+    delete_all_entities_of_blueprint(cleanup_token, PR_BLUEPRINT)
+    delete_all_entities_of_blueprint(cleanup_token, ISSUE_BLUEPRINT)
+    # =========================================================================
+    # 👆 END OF NEW "INITIAL CLEANUP" SECTION
+    # =========================================================================    
 
     # --- Capture a unique timestamp for this specific workflow run
     ingestion_timestamp = datetime.utcnow().isoformat() + "Z"

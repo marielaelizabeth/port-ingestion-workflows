@@ -1,6 +1,7 @@
 import os
 import sys
 import requests
+import random 
 
 # --- Configuration ---
 PORT_CLIENT_ID = os.getenv("PORT_CLIENT_ID")
@@ -14,6 +15,16 @@ PORT_API_URL = "https://api.getport.io/v1"
 PR_BLUEPRINT = "githubPullRequest" 
 ISSUE_BLUEPRINT = "githubIssue"   
 VULNERABILITY_BLUEPRINT = "githubDependabotAlert" 
+
+# --- WALMART DUMMY DATA POOLS ---
+WALMART_LABELS = ["bug", "feature-request", "tech-debt", "security", "hotfix", "documentation"]
+WALMART_TEAMS = ["Payments-Bentonville", "Mobile-Bangalore", "Platform-Austin", "SupplyChain-Dallas", "Ecomm-Reston"]
+WALMART_DEVELOPERS = [
+    "alex.chen", "brenda.smith", "carlos.garcia", "diana.jones", "ethan.williams",
+    "fiona.davis", "greg.miller", "hannah.wilson", "ian.moore", "jenna.taylor"
+]
+WALMART_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "SupplyChain_API_V2", "Mobile_App_Refresh"]
+
 
 # --- Helper Functions ---
 
@@ -90,10 +101,14 @@ def main():
     print("\n--- Processing Pull Requests ---")
     github_prs = fetch_github_data("pulls")
     port_pr_entities = []
+    # ---- Randomly assign reviewers and an assignee ---
+    pr_assignees = [random.choice(WALMART_DEVELOPERS)] if pr.get("assignees") else []
+    pr_reviewers = random.sample(WALMART_DEVELOPERS, k=2) # Pick 2 unique random reviewers
+    
     for pr in github_prs:
         port_pr_entities.append({
             "identifier": str(pr["number"]), "title": pr["title"],
-            "properties": { "url": pr["html_url"], "status": pr["state"], "creator": pr.get("user", {}).get("login"), "createdAt": pr["created_at"], "updatedAt": pr["updated_at"] },
+            "properties": { "url": pr["html_url"], "status": pr["state"], "creator": pr.get("user", {}).get("login"), "createdAt": pr["created_at"], "updatedAt": pr["updated_at"], "assignees": pr_assignees, "reviewers": pr_reviewers },
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
     # Get a fresh token right before we use it
@@ -111,12 +126,19 @@ def main():
             continue # Skip PRs
             
         # This line creates the 'issue_labels' variable for the current issue
-        issue_labels = [label['name'] for label in issue.get('labels', [])]
-        primary_label_value = issue_labels[0] if issue_labels else "No Label"
-
+        # ---issue_labels = [label['name'] for label in issue.get('labels', [])]
+        # ---primary_label_value = issue_labels[0] if issue_labels else "No Label"
+        
+        # Randomly assign labels, a primary label, assignee, and project
+        num_labels = random.randint(1, 2)
+        issue_labels = random.sample(WALMART_LABELS, k=num_labels)
+        primary_label_value = issue_labels[0]
+        issue_assignee = random.choice(WALMART_DEVELOPERS)
+        issue_project = random.choice(WALMART_PROJECTS)
+        
         port_issue_entities.append({
             "identifier": str(issue["number"]), "title": issue["title"],
-            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels, "primaryLabel": primary_label_value  }, 
+            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels, "primaryLabel": primary_label_value, "assignee": issue_assignee, "project": issue_project   }, 
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
     # Get another fresh token right before we use it

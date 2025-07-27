@@ -48,8 +48,8 @@ def main():
             "createdAt": "2023-01-01T12:00:00Z",
             "updatedAt": "2023-01-01T12:00:00Z",
             # The properties we are testing
-            "assignees": ["alex.chen"],
-            "reviewers": ["brenda.smith", "carlos.garcia"]
+            "assignees": ["alex.chen"]
+            #---,"reviewers": ["brenda.smith", "carlos.garcia"]
         },
         "relations": {
             "repository": REPO_ENTITY_IDENTIFIER

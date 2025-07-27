@@ -4,6 +4,16 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+  # 👇 ADD THIS ENTIRE 'inputs' SECTION
+    inputs:
+      manual_client_id:
+        description: 'lDuTSvbuq6xzHqpzwxBv0aA1PG373W5W'
+        required: true
+      manual_client_secret:
+        description: 'do4gthufsD15l3JudIYcZYpbN4I8lwxggNnZeJhnY5ytDu09D0qAh9O4SCbM7h0k'
+        required: true
+  
+
   # Runs the workflow on a schedule (e.g., every 6 hours)
   schedule:
     - cron: '0 */6 * * *' # You can adjust the schedule as needed
@@ -28,7 +38,13 @@ jobs:
 
       - name: Run Ingestion Script
         env:
-          PORT_CLIENT_ID: ${{ secrets.PORT_CLIENT_ID }}
-          PORT_CLIENT_SECRET: ${{ secrets.PORT_CLIENT_SECRET }}
+
+          # 👇 CHANGE THESE TWO LINES
+          PORT_CLIENT_ID: ${{ github.event.inputs.manual_client_id }}
+          PORT_CLIENT_SECRET: ${{ github.event.inputs.manual_client_secret }}
+         
+        
+          # PORT_CLIENT_ID: ${{ secrets.PORT_CLIENT_ID }}
+          # PORT_CLIENT_SECRET: ${{ secrets.PORT_CLIENT_SECRET }}
           GH_PAT: ${{ secrets.GH_PAT }}
         run: python scripts/ingest_public_repo_data.py

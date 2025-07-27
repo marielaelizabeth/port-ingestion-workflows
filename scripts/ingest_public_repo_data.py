@@ -101,16 +101,31 @@ def main():
     print("\n--- Processing Pull Requests ---")
     github_prs = fetch_github_data("pulls")
     port_pr_entities = []
+    print(f"Found {len(github_prs)} PRs. Now enriching with dummy data...")
+    
     # ---- Randomly assign reviewers and an assignee ---
     pr_assignees = [random.choice(WALMART_DEVELOPERS)] if pr.get("assignees") else []
     pr_reviewers = random.sample(WALMART_DEVELOPERS, k=2) # Pick 2 unique random reviewers
     
-    for pr in github_prs:
+    for i, pr in enumerate(github_prs):
+    try:
+        # Safer random assignment
+        pr_assignees = [random.choice(WALMART_DEVELOPERS)] if pr.get("assignees") else []
+        pr_reviewers = random.choices(WALMART_DEVELOPERS, k=2) # Using choices is safer than sample
+
         port_pr_entities.append({
             "identifier": str(pr["number"]), "title": pr["title"],
             "properties": { "url": pr["html_url"], "status": pr["state"], "creator": pr.get("user", {}).get("login"), "createdAt": pr["created_at"], "updatedAt": pr["updated_at"], "assignees": pr_assignees, "reviewers": pr_reviewers },
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
+         if (i + 1) % 500 == 0:
+                print(f"Processed {i + 1}/{len(github_prs)} PRs...")
+        except Exception as e:
+            print(f"Error processing PR #{pr.get('number', 'N/A')}: {e}", file=sys.stderr)
+            continue # Skip this PR and continue
+
+    print("Finished enriching PRs. Now sending to Port...")
+    
     # Get a fresh token right before we use it
     port_token_for_prs = get_port_api_token()
     upsert_entities_in_bulk(port_token_for_prs, PR_BLUEPRINT, port_pr_entities)
@@ -119,16 +134,18 @@ def main():
     print("\n--- Processing Issues ---")
     github_issues = fetch_github_data("issues")
     port_issue_entities = []
+    print(f"Found {len(github_issues)} issues. Now enriching with dummy data...")
 
     # Start the process issue loop
-    for issue in github_issues:
-        if 'pull_request' in issue: 
-            continue # Skip PRs
-            
+    for i, issue in enumerate(github_issues):
+        if 'pull_request' in issue: continue
+        try:
+           
         # This line creates the 'issue_labels' variable for the current issue
         # ---issue_labels = [label['name'] for label in issue.get('labels', [])]
         # ---primary_label_value = issue_labels[0] if issue_labels else "No Label"
         
+        # Safer random assignment
         # Randomly assign labels, a primary label, assignee, and project
         num_labels = random.randint(1, 2)
         issue_labels = random.sample(WALMART_LABELS, k=num_labels)
@@ -141,6 +158,15 @@ def main():
             "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels, "primaryLabel": primary_label_value, "assignee": issue_assignee, "project": issue_project   }, 
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
+
+    if (i + 1) % 500 == 0:
+                print(f"Processed {i + 1}/{len(github_issues)} issues...")
+        except Exception as e:
+            print(f"Error processing Issue #{issue.get('number', 'N/A')}: {e}", file=sys.stderr)
+            continue # Skip this issue and continue
+
+    print("Finished enriching issues. Now sending to Port...")
+
     # Get another fresh token right before we use it
     port_token_for_issues = get_port_api_token()
     upsert_entities_in_bulk(port_token_for_issues, ISSUE_BLUEPRINT, port_issue_entities)

@@ -84,7 +84,8 @@ def main():
     for i, pr in enumerate(github_prs):
         try:
             # Randomly assign reviewers and an assignee INSIDE the loop
-            pr_assignees = [random.choice(WALMART_DEVELOPERS)] if random.choice([True, False]) else [] # 50% chance of an assignee
+            #--- pr_assignees = [random.choice(WALMART_DEVELOPERS)] if random.choice([True, False]) else [] # 50% chance of an assignee---
+            pr_assignees = [random.choice(WALMART_DEVELOPERS)]
             pr_reviewers = random.choices(WALMART_DEVELOPERS, k=random.randint(1, 2)) # Use safer 'choices'
 
             port_pr_entities.append({

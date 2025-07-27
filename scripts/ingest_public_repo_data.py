@@ -3,6 +3,7 @@ import sys
 import requests
 import random
 import uuid 
+from datetime import datetime
 
 # --- Configuration ---
 PORT_CLIENT_ID = os.getenv("PORT_CLIENT_ID")
@@ -90,6 +91,10 @@ def main():
         print("Error: Missing required secrets. Please check repository configuration.", file=sys.stderr)
         sys.exit(1)
 
+    # --- Capture a unique timestamp for this specific workflow run
+    ingestion_timestamp = datetime.utcnow().isoformat() + "Z"
+    print(f"Starting ingestion with unique timestamp: {ingestion_timestamp}")
+    
     # --- Process Pull Requests ---
     print("\n--- Processing Pull Requests ---")
     github_prs = fetch_github_data("pulls")

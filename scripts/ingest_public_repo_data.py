@@ -112,10 +112,11 @@ def main():
             
         # This line creates the 'issue_labels' variable for the current issue
         issue_labels = [label['name'] for label in issue.get('labels', [])]
+        primary_label_value = issue_labels[0] if issue_labels else "No Label"
 
         port_issue_entities.append({
             "identifier": str(issue["number"]), "title": issue["title"],
-            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels  }, 
+            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels, "primaryLabel": primary_label_value  }, 
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
     # Get another fresh token right before we use it

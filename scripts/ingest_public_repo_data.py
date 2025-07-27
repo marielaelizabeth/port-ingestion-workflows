@@ -2,6 +2,7 @@ import os
 import sys
 import requests
 import random
+import uuid 
 
 # --- Configuration ---
 PORT_CLIENT_ID = os.getenv("PORT_CLIENT_ID")
@@ -24,6 +25,7 @@ WALMART_DEVELOPERS = [
     "fiona.davis", "greg.miller", "hannah.wilson", "ian.moore", "jenna.taylor"
 ]
 WALMART_PROJECTS = ["Q3_Checkout_Redesign", "Holiday_Scale_Prep", "SupplyChain_API_V2", "Mobile_App_Refresh"]
+
 
 # --- Helper Functions ---
 
@@ -51,21 +53,34 @@ def fetch_github_data(endpoint):
     return all_data
 
 def upsert_entities_in_bulk(access_token, blueprint_id, entities):
+    """
+    Creates or updates entities in Port using the Bulk API with a unique runId.
+    """
     if not entities:
         print(f"No entities to upsert for blueprint {blueprint_id}.")
         return
+
     headers = {'Authorization': f'Bearer {access_token}'}
     payload = {"entities": entities}
-    print(f"Upserting {len(entities)} entities to blueprint {blueprint_id} in a single request...")
+    
+    # Generate a new, unique runId for every single API call
+    run_id = str(uuid.uuid4())
+    
+    print(f"Upserting {len(entities)} entities to blueprint {blueprint_id} with runId: {run_id}...")
+    
+    # Add the runId as a query parameter to the URL
+    api_url = f"{PORT_API_URL}/blueprints/{blueprint_id}/entities/bulk?runId={run_id}"
+    
     response = requests.post(
-        f"{PORT_API_URL}/blueprints/{blueprint_id}/entities/bulk",
+        api_url, # Use the new URL with the runId
         json=payload,
         headers=headers
     )
+    
     if not response.ok:
         print(f"Error during bulk upsert for {blueprint_id}: {response.status_code} {response.text}", file=sys.stderr)
     else:
-        print(f"Successfully upserted batch for {blueprint_id}.")
+        print(f"Successfully started bulk upsert job for {blueprint_id}.")
     return response
 
 # --- Main Logic ---

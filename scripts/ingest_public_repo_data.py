@@ -104,11 +104,18 @@ def main():
     print("\n--- Processing Issues ---")
     github_issues = fetch_github_data("issues")
     port_issue_entities = []
+
+    # Start the process issue loop
     for issue in github_issues:
-        if 'pull_request' in issue: continue
+        if 'pull_request' in issue: 
+            continue # Skip PRs
+            
+        # This line creates the 'issue_labels' variable for the current issue
+        issue_labels = [label['name'] for label in issue.get('labels', [])]
+
         port_issue_entities.append({
             "identifier": str(issue["number"]), "title": issue["title"],
-            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels  }, # --- Bring labels ---
+            "properties": { "url": issue["html_url"], "status": issue["state"], "creator": issue.get("user", {}).get("login"), "labels": issue_labels  }, 
             "relations": { "repository": REPO_ENTITY_IDENTIFIER }
         })
     # Get another fresh token right before we use it

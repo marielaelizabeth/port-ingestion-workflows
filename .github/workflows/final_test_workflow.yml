@@ -1,14 +1,35 @@
 name: Run Bare Metal Diagnostic
-on: workflow_dispatch
+
+# Ensure 'on' is at the very beginning of the line
+on: 
+  # Ensure 'workflow_dispatch' is indented by two spaces
+  workflow_dispatch:
+
+# Ensure 'jobs' is at the very beginning of the line
 jobs:
+  # Ensure 'test' is indented by two spaces
   test:
+    # Ensure 'runs-on' is indented by four spaces
     runs-on: ubuntu-latest
+    
+    # Ensure 'steps' is indented by four spaces
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with: { python-version: '3.10' }
-      - run: pip install requests
-      - env:
+      # Each step starts with a hyphen and a space, indented by six spaces
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: pip install requests
+
+      - name: Run the Diagnostic Script
+        # Ensure 'env' is indented by eight spaces
+        env:
           PORT_CLIENT_ID: ${{ secrets.PORT_CLIENT_ID }}
           PORT_CLIENT_SECRET: ${{ secrets.PORT_CLIENT_SECRET }}
+        # Ensure 'run' is indented by eight spaces
         run: python final_test.py
